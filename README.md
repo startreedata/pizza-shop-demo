@@ -2,7 +2,7 @@
 
 This repository contains the code for the Pizza Shop Demo. 
 
-![](image/architecture.png)
+![](images/architecture.png)
 
 ## Run the demo
 

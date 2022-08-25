@@ -2,6 +2,8 @@
 
 This repository contains the code for the Pizza Shop Demo. 
 
+![](images/architecture.png)
+
 ## Run the demo
 
 ```bash

@@ -1,0 +1,43 @@
+{
+    "schemaName": "order_items_enriched",
+    "dimensionFieldSpecs": [
+        {
+            "name": "orderId",
+            "dataType": "STRING"
+        },
+        {
+            "name": "product.id",
+            "dataType": "STRING"
+        },
+        {
+            "name": "product.name",
+            "dataType": "STRING"
+        },
+        {
+            "name": "product.category",
+            "dataType": "STRING"
+        },
+        {
+            "name": "product.image",
+            "dataType": "STRING"
+        }
+    ],
+    "metricFieldSpecs": [
+        {
+            "name": "product.price",
+            "dataType": "DOUBLE"
+        },
+        {
+            "name": "orderItem.quantity",
+            "dataType": "INT"
+        }
+    ],
+    "dateTimeFieldSpecs": [
+        {
+            "name": "ts",
+            "dataType": "TIMESTAMP",
+            "format": "1:MILLISECONDS:EPOCH",
+            "granularity": "1:MILLISECONDS"
+        }
+    ]
+}

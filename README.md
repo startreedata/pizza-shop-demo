@@ -7,7 +7,11 @@ This repository contains the code for the Pizza Shop Demo.
 ## Run the demo
 
 ```bash
-docker-compose up
+docker-compose \
+  -f docker-compose-base.yml \
+  -f docker-compose-pinot.yml \
+  -f docker-compose-dashboard-enriched.yml \
+  up
 ```
 
 Once that's run, you can navigate to the following:

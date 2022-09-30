@@ -17,7 +17,7 @@ docker-compose \
 Once that's run, you can navigate to the following:
 
 * Pinot UI - http://localhost:9000
-* Streamlit Dashboard - http://localhost:8501
+* Streamlit Dashboard - http://localhost:8502
 
 You can find a deeper dive on each of the components at https://dev.startree.ai/docs/pinot/demo-apps/pizza-shop
 

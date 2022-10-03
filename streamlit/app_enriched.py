@@ -38,14 +38,16 @@ if not "auto_refresh" in st.session_state:
 mapping = {
     "1 hour": "PT1H",
     "10 minutes": "PT10M",
-    "5 minutes": "PT5M"
+    "5 minutes": "PT5M",
+    "1 minute": "PT1M"
 }
 
 mapping2 = {
-    "1 hour": {"period": "PT60M", "granularity": "minute"},
-    "30 minutes": {"period": "PT30M", "granularity": "minute"},
-    "10 minutes": {"period": "PT10M", "granularity": "second"},
-    "5 minutes": {"period": "PT5M", "granularity": "second"}
+    "1 hour": {"period": "PT60M", "previousPeriod": "PT120M", "granularity": "minute"},
+    "30 minutes": {"period": "PT30M", "previousPeriod": "PT60M", "granularity": "minute"},
+    "10 minutes": {"period": "PT10M", "previousPeriod": "PT20M", "granularity": "second"},
+    "5 minutes": {"period": "PT5M", "previousPeriod": "PT10M", "granularity": "second"},
+    "1 minute": {"period": "PT1M", "previousPeriod": "PT2M", "granularity": "second"}
 }
 
 with st.expander("Configure Dashboard", expanded=True):
@@ -77,16 +79,19 @@ Exception: {e}""",icon="⚠️")
 
 if pinot_available:
     query = """
-    select count(*) FILTER(WHERE  ts > ago('PT1M')) AS events1Min,
-        count(*) FILTER(WHERE  ts <= ago('PT1M') AND ts > ago('PT2M')) AS events1Min2Min,
-        sum("price") FILTER(WHERE  ts > ago('PT1M')) AS total1Min,
-        sum("price") FILTER(WHERE  ts <= ago('PT1M') AND ts > ago('PT2M')) AS total1Min2Min
+    select count(*) FILTER(WHERE  ts > ago(%(nearTimeAgo)s)) AS events1Min,
+        count(*) FILTER(WHERE  ts <= ago(%(nearTimeAgo)s) AND ts > ago(%(timeAgo)s)) AS events1Min2Min,
+        sum("price") FILTER(WHERE  ts > ago(%(nearTimeAgo)s)) AS total1Min,
+        sum("price") FILTER(WHERE  ts <= ago(%(nearTimeAgo)s) AND ts > ago(%(timeAgo)s)) AS total1Min2Min
     from orders
     where ts > ago(%(timeAgo)s)
     limit 1
     """
     
-    curs.execute(query, {"timeAgo": mapping2[time_ago]["period"]})
+    curs.execute(query, {
+        "timeAgo": mapping2[time_ago]["previousPeriod"],
+        "nearTimeAgo": mapping2[time_ago]["period"]
+    })
 
     df = pd.DataFrame(curs, columns=[item[0] for item in curs.description])
 

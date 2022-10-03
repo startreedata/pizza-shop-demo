@@ -8,9 +8,9 @@ This repository contains the code for the Pizza Shop Demo.
 
 ```bash
 docker-compose \
-  -f docker/docker-compose-base.yml \
-  -f docker/docker-compose-pinot.yml \
-  -f docker/docker-compose-dashboard-enriched-quarkus.yml \
+  -f docker-compose-base.yml \
+  -f docker-compose-pinot.yml \
+  -f docker-compose-dashboard-enriched-quarkus.yml \
   up
 ```
 
@@ -28,9 +28,9 @@ If that's the case, run the following to launch everything instead:
 
 ```bash
 docker-compose \
-  -f docker/docker-compose-base.yml \
-  -f docker/docker-compose-pinot.yml \
-  -f docker/docker-compose-dashboard-enriched.yml \
+  -f docker-compose-base.yml \
+  -f docker-compose-pinot.yml \
+  -f docker-compose-dashboard-enriched.yml \
   up
 ```
 

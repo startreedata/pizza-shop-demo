@@ -1,7 +1,7 @@
 version: "3"
 services:
   pinot-controller:
-    image: apachepinot/pinot:0.10.0
+    image: apachepinot/pinot:0.11.0
     command: "QuickStart -type EMPTY"
     container_name: "pinot-controller"
     restart: unless-stopped
@@ -11,7 +11,7 @@ services:
     depends_on:
       - zookeeper
   pinot-add-table:
-    image: apachepinot/pinot:0.10.0
+    image: apachepinot/pinot:0.11.0
     container_name: "pinot-add-table"
     volumes:
       - ./pinot/config:/config

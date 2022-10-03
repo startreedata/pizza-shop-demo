@@ -8,9 +8,9 @@ This repository contains the code for the Pizza Shop Demo.
 
 ```bash
 docker-compose \
-  -f docker-compose-base.yml \
-  -f docker-compose-pinot.yml \
-  -f docker-compose-dashboard-enriched-quarkus.yml \
+  -f docker/docker-compose-base.yml \
+  -f docker/docker-compose-pinot.yml \
+  -f docker/docker-compose-dashboard-enriched-quarkus.yml \
   up
 ```
 
@@ -23,6 +23,17 @@ You can find a deeper dive on each of the components at https://dev.startree.ai/
 
 ## Things that sometimes don't work
 
+If the RedHat Docker repository is being flaky, the Quarkus stuff might not work.
+If that's the case, run the following to launch everything instead:
+
+```bash
+docker-compose \
+  -f docker/docker-compose-base.yml \
+  -f docker/docker-compose-pinot.yml \
+  -f docker/docker-compose-dashboard-enriched.yml \
+  up
+```
+
 The Kafka Streams component can get itself in a broken/stuck state if it tries to start before the Kafka topics exist. To fix that, restart the service:
 
 ```
@@ -34,3 +45,4 @@ Less frequently, the `pinot-add-table` service never returns code 0 if it create
 ```
 docker stop pinot-add-table
 ```
+

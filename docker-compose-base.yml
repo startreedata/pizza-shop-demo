@@ -42,7 +42,7 @@ services:
       [zookeeper]
     healthcheck: {test: nc -z localhost 9092, interval: 1s}
   orders-service:
-    build: ../orders-service
+    build: orders-service
     restart: unless-stopped
     container_name: orders-service
     depends_on:

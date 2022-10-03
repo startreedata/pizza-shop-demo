@@ -2,6 +2,11 @@
 
 The Pizza Shop Demo shows how to build a real-time dashboard for the operators of a fictional pizza delivery service.
 
+## Dependencies
+
+* [kcat](https://docs.confluent.io/platform/current/app-development/kafkacat-usage.html) - produce, consume, and list topic and partition information for Kafka.
+* [jq](https://stedolan.github.io/jq/) - Sed for JSON data
+
 ## Initial Architecture
 
 We start with products and users loaded into a MySQL database. 
@@ -27,14 +32,18 @@ LIMIT 10;
 ```
 
 We also have a stream of orders in Apache Kafka.
-Install kcat on your machine to make it easier to query 
 
 ```bash
-kcat -C -b localhost:29092 -t orders
+kcat -C -b localhost:29092 -t orders | jq '.'
 ```
 
 or 
 
 ```bash
-kafkacat -C -b localhost:29092 -t orders -c 10
+kafkacat -C -b localhost:29092 -t orders | jq '.'
 ```
+
+The code for the data generation is in [orders-service/multiseeder.py)(orders-service/multiseeder.py). 
+
+## Adding Real-Time Analytics
+

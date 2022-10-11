@@ -54,35 +54,15 @@ public class TopologyProducer {
             return result;
         });
 
-        KTable<String, HydratedOrder> hydratedOrders = orderItems.join(products, (orderItem, product) -> {
+        orderItems.join(products, (orderItem, product) -> {
                     HydratedOrderItem hydratedOrderItem = new HydratedOrderItem();
+                    hydratedOrderItem.createdAt = orderItem.createdAt;
                     hydratedOrderItem.orderId = orderItem.orderId;
                     hydratedOrderItem.orderItem = orderItem.orderItem;
                     hydratedOrderItem.product = product;
                     return hydratedOrderItem;
                 }, Joined.with(Serdes.String(), orderItemWithContextSerde, productSerde))
-                .groupBy((key, value) -> value.orderId, Grouped.with(Serdes.String(), hydratedOrderItemsSerde))
-                .aggregate(HydratedOrder::new, (key, value, aggregate) -> {
-                    aggregate.addOrderItem(value);
-                    return aggregate;
-                }, Materialized.with(Serdes.String(), hydratedOrdersSerde));
-
-        orders.toTable().join(hydratedOrders, (value1, value2) -> {
-            CompleteOrder completeOrder = new CompleteOrder();
-            completeOrder.id = value1.id;
-            completeOrder.status = value1.status;
-            completeOrder.userId = value1.userId;
-            completeOrder.createdAt = value1.createdAt;
-            completeOrder.price = value1.price;
-
-            completeOrder.items = value2.orderItems.stream().map(orderItem -> {
-                CompleteOrderItem completeOrderItem = new CompleteOrderItem();
-                completeOrderItem.product = orderItem.product;
-                completeOrderItem.quantity = orderItem.orderItem.quantity;
-                return completeOrderItem;
-            }).collect(Collectors.toList());
-            return completeOrder;
-        }).toStream().to(enrichedOrdersTopic, Produced.with(Serdes.String(), completeOrderSerde));
+                .to(enrichedOrdersTopic, Produced.with(Serdes.String(), hydratedOrderItemsSerde));
 
         final Properties props = new Properties();
 

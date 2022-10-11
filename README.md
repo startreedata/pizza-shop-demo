@@ -14,6 +14,14 @@ docker-compose \
   up
 ```
 
+```bash
+docker-compose \
+  -f docker-compose-base.yml \
+  -f docker-compose-pinot-m1.yml \
+  -f docker-compose-dashboard-enriched-quarkus.yml \
+  up
+```
+
 Once that's run, you can navigate to the following:
 
 * Pinot UI - http://localhost:9000

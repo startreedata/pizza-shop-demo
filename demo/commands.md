@@ -28,7 +28,7 @@ exit
 ## RTA Architecture
 
 ```bash
-kcat -C -b localhost:29092 -t orders
+kcat -C -b localhost:29092 -t orders -u | jq '.'
 ```
 
 Open VS Code
@@ -46,7 +46,7 @@ limit 10
 Back to the terminal
 
 ```bash
-kcat -C -b localhost:29092 -t products
+kcat -C -b localhost:29092 -t products -u | jq '.'
 ```
 
 Open VS Code

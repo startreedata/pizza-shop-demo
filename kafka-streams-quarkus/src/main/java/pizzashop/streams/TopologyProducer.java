@@ -4,7 +4,6 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.*;
 import pizzashop.deser.JsonDeserializer;
@@ -16,16 +15,14 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class TopologyProducer {
     @Produces
     public Topology buildTopology() {
-        String ordersTopic = System.getenv().getOrDefault("ORDERS_TOPIC",  "orders-multi9");
-        String productsTopic = System.getenv().getOrDefault("PRODUCTS_TOPIC",  "products-multi9");
-        String enrichedOrdersTopic = System.getenv().getOrDefault("ENRICHED_ORDERS_TOPIC",  "enriched-orders-multi10");
+        String ordersTopic = System.getenv().getOrDefault("ORDERS_TOPIC",  "orders");
+        String productsTopic = System.getenv().getOrDefault("PRODUCTS_TOPIC",  "products");
+        String enrichedOrderItemsTopic = System.getenv().getOrDefault("ENRICHED_ORDERS_TOPIC",  "enriched-order-items");
 
         final Serde<Order> orderSerde = Serdes.serdeFrom(new JsonSerializer<>(), new JsonDeserializer<>(Order.class));
         OrderItemWithContextSerde orderItemWithContextSerde = new OrderItemWithContextSerde();
@@ -33,10 +30,6 @@ public class TopologyProducer {
                 new JsonDeserializer<>(Product.class));
         final Serde<HydratedOrderItem> hydratedOrderItemsSerde = Serdes.serdeFrom(new JsonSerializer<>(),
                 new JsonDeserializer<>(HydratedOrderItem.class));
-        final Serde<HydratedOrder> hydratedOrdersSerde = Serdes.serdeFrom(new JsonSerializer<>(),
-                new JsonDeserializer<>(HydratedOrder.class));
-        final Serde<CompleteOrder> completeOrderSerde = Serdes.serdeFrom(new JsonSerializer<>(),
-                new JsonDeserializer<>(CompleteOrder.class));
 
         StreamsBuilder builder = new StreamsBuilder();
 
@@ -49,6 +42,7 @@ public class TopologyProducer {
                 OrderItemWithContext orderItemWithContext = new OrderItemWithContext();
                 orderItemWithContext.orderId = value.id;
                 orderItemWithContext.orderItem = item;
+                orderItemWithContext.createdAt = value.createdAt;
                 result.add(new KeyValue<>(String.valueOf(item.productId), orderItemWithContext));
             }
             return result;
@@ -62,12 +56,8 @@ public class TopologyProducer {
                     hydratedOrderItem.product = product;
                     return hydratedOrderItem;
                 }, Joined.with(Serdes.String(), orderItemWithContextSerde, productSerde))
-                .to(enrichedOrdersTopic, Produced.with(Serdes.String(), hydratedOrderItemsSerde));
+                .to(enrichedOrderItemsTopic, Produced.with(Serdes.String(), hydratedOrderItemsSerde));
 
-        final Properties props = new Properties();
-
-        props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, OrderItemWithContextSerde.class.getName());
-        return builder.build(props);
+        return builder.build();
     }
 }

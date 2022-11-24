@@ -1,13 +1,10 @@
-from turtle import width
 import streamlit as st
 import pandas as pd
 from pinotdb import connect
 from datetime import datetime
 import time
-import plotly.express as px
 import plotly.graph_objects as go
 import os
-from dateutil import parser
 
 def path_to_image_html(path):
     return '<img src="' + path + '" width="60" >'
@@ -30,17 +27,11 @@ st.write(f"Last update: {dt_string}")
 # Use session state to keep track of whether we need to auto refresh the page and the refresh frequency
 
 if not "sleep_time" in st.session_state:
-    st.session_state.sleep_time = 2
+    st.session_state.sleep_time = 5
 
 if not "auto_refresh" in st.session_state:
     st.session_state.auto_refresh = True
 
-mapping = {
-    "1 hour": "PT1H",
-    "10 minutes": "PT10M",
-    "5 minutes": "PT5M",
-    "1 minute": "PT1M"
-}
 
 mapping2 = {
     "1 hour": {"period": "PT60M", "previousPeriod": "PT120M", "granularity": "minute"},
@@ -61,7 +52,7 @@ with st.expander("Configure Dashboard", expanded=True):
             st.session_state.sleep_time = number
 
     with right:
-            time_ago = st.radio("Time period to cover", mapping2.keys(), horizontal=True, key="time_ago")
+            time_ago = st.radio("Time period to cover", mapping2.keys(), horizontal=True, key="time_ago", index=len(mapping2.keys())-1)
 
 curs = conn.cursor()
 
@@ -80,9 +71,9 @@ Exception: {e}""",icon="⚠️")
 if pinot_available:
     query = """
     select count(*) FILTER(WHERE  ts > ago(%(nearTimeAgo)s)) AS events1Min,
-        count(*) FILTER(WHERE  ts <= ago(%(nearTimeAgo)s) AND ts > ago(%(timeAgo)s)) AS events1Min2Min,
-        sum("price") FILTER(WHERE  ts > ago(%(nearTimeAgo)s)) AS total1Min,
-        sum("price") FILTER(WHERE  ts <= ago(%(nearTimeAgo)s) AND ts > ago(%(timeAgo)s)) AS total1Min2Min
+           count(*) FILTER(WHERE  ts <= ago(%(nearTimeAgo)s) AND ts > ago(%(timeAgo)s)) AS events1Min2Min,
+           sum("price") FILTER(WHERE  ts > ago(%(nearTimeAgo)s)) AS total1Min,
+           sum("price") FILTER(WHERE  ts <= ago(%(nearTimeAgo)s) AND ts > ago(%(timeAgo)s)) AS total1Min2Min
     from orders
     where ts > ago(%(timeAgo)s)
     limit 1

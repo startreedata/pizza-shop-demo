@@ -25,7 +25,7 @@ services:
       ZOO_PORT: 2181
       ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
   kafka:
-    image: confluentinc/cp-kafka:7.1.0
+    image: confluentinc/cp-kafka:latest
     hostname: kafka
     container_name: kafka
     ports:

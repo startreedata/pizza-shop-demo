@@ -32,8 +32,7 @@ services:
     volumes:
       - ./pinot/config:/config
       - ./scripts/:/scripts
-    command: "'./bin/pinot-admin.sh AddTable -schemaFile /config/orders/schema.json -tableConfigFile /config/orders/table.json -controllerHost pinot-controller -exec && \
-           ./bin/pinot-admin.sh AddTable -schemaFile /config/order_items_enriched/schema.json -tableConfigFile /config/order_items_enriched/table.json -controllerHost pinot-controller -exec'"
+    command: "/scripts/add_tables.sh"
     restart: on-failure
     entrypoint: "bash -c"
     environment:

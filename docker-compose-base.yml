@@ -14,6 +14,8 @@ services:
       - ./mysql/mysql.cnf:/etc/mysql/conf.d
       - ./mysql/mysql_bootstrap.sql:/docker-entrypoint-initdb.d/mysql_bootstrap.sql
       - ./mysql/data:/var/lib/mysql-files/data
+    networks: 
+      - pizzashop
   zookeeper:
     image: zookeeper:3.8.0
     container_name: zookeeper
@@ -24,6 +26,8 @@ services:
       ZOO_MY_ID: 1
       ZOO_PORT: 2181
       ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+    networks: 
+      - pizzashop
 
   redpanda:
     container_name: "redpanda"
@@ -43,6 +47,8 @@ services:
       - 9092:9092
       - 9644:9644
       - 29092:29092
+    networks: 
+      - pizzashop
 
   console:
     container_name: "redpanda-console"
@@ -61,15 +67,12 @@ services:
           adminApi:
             enabled: true
             urls: ["http://redpanda:9644"]
-        connect:
-          enabled: true
-          clusters:
-            - name: local-connect-cluster
-              url: http://connect:8083
     ports:
       - 8080:8080
     depends_on:
       - redpanda
+    networks: 
+      - pizzashop
 
   orders-service:
     build: orders-service
@@ -82,3 +85,8 @@ services:
       - MYSQL_SERVER=mysql
       - KAFKA_BROKER_HOSTNAME=redpanda
       - KAFKA_BROKER_PORT=29092
+    networks: 
+      - pizzashop
+networks:
+  pizzashop:
+    name: pizzashop

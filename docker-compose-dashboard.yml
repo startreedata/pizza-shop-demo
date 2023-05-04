@@ -6,8 +6,6 @@ services:
     container_name: dashboard
     ports:
       - "8501:8501"
-    depends_on:
-      - pinot-controller
     volumes:
       - ./streamlit/app.py:/workdir/app.py
     environment:

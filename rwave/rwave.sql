@@ -62,8 +62,16 @@ WITH orderItems AS (
 )
 SELECT orderId, createdAt,
        ((orderItem).productid, (orderItem).quantity, (orderItem).price)::
-       STRUCT<productId varchar, quantity varchar, price varchar> AS orderItem,
+       STRUCT<productId varchar, quantity varchar, price varchar> AS "orderItem",
         (products.id, products.name, products.description, products.category, products.image, products.price)::
         STRUCT<id varchar, name varchar, description varchar, category varchar, image varchar, price varchar> AS product
 FROM orderItems
 JOIN products ON products.id = (orderItem).productId;
+
+CREATE SINK enrichedOrderItems_sink FROM orderItems_view 
+WITH (
+   connector='kafka',
+   type='append-only',
+   properties.bootstrap.server='redpanda:29092',
+   topic='enriched-order-items'
+);

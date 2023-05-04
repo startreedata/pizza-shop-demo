@@ -25,12 +25,6 @@ rpk topic consume orders --brokers localhost:9092
 rpk topic consume orders --brokers localhost:9092 | jq -c '.value | fromjson'
 ```
 
-## Enrich stream
-
-```
-psql -h localhost -p 4566 -d dev -U root
-```
-
 ## Apache Pinot - Orders Table
 
 ```bash
@@ -72,19 +66,94 @@ pygmentize -O style=github-dark streamlit/app.py | less
 ```
 
 
-## Kafka Streams - Joining products
+## RisingWave - Joining products
 
 ```bash
-kcat -C -b localhost:29092 -t products -c 10 -u | jq
+rpk topic consume products --brokers localhost:9092 | jq -c '.value | fromjson'
 ```
 
 ```bash
-pygmentize -O style=github-dark kafka-streams-quarkus/src/main/java/pizzashop/streams/TopologyProducer.java | less
+rpk topic consume enriched-order-items --brokers localhost:9092 | jq -c '.value | fromjson'
 ```
 
-```bash
-kcat -C -b localhost:29092 -t enriched-order-items -c 10 -u | jq
+Enrich stream:
+
 ```
+psql -h localhost -p 4566 -d dev -U root
+```
+
+Create sources
+
+```sql
+CREATE SOURCE IF NOT EXISTS orders (
+    id varchar,
+    createdAt TIMESTAMP,
+    userId integer,
+    status varchar,
+    price double,
+    items STRUCT <
+      productId varchar,
+      quantity integer,
+      price double
+    >[]
+)
+WITH (
+   connector='kafka',
+   topic='orders',
+   properties.bootstrap.server='redpanda:29092',
+   scan.startup.mode='earliest',
+   scan.startup.timestamp_millis='140000000'
+)
+ROW FORMAT JSON;
+
+CREATE SOURCE IF NOT EXISTS products (
+    id varchar,
+    name varchar,
+    description varchar,
+    category varchar,
+    price double,
+    image varchar
+)
+WITH (
+   connector='kafka',
+   topic='products',
+   properties.bootstrap.server='redpanda:29092',
+   scan.startup.mode='earliest',
+   scan.startup.timestamp_millis='140000000'
+)
+ROW FORMAT JSON;
+```
+
+Create materialized view
+
+```sql
+CREATE MATERIALIZED VIEW orderItems_view AS
+WITH orderItems AS (
+    select unnest(items) AS orderItem, 
+           id AS "orderId", createdAt           
+    FROM orders
+)
+SELECT "orderId", createdAt,
+       ((orderItem).productid, (orderItem).quantity, (orderItem).price)::
+       STRUCT<productId varchar, quantity varchar, price varchar> AS "orderItem",
+        (products.id, products.name, products.description, products.category, products.image, products.price)::
+        STRUCT<id varchar, name varchar, description varchar, category varchar, image varchar, price varchar> AS product
+FROM orderItems
+JOIN products ON products.id = (orderItem).productId;
+```
+
+Create sink
+
+```sql
+CREATE SINK enrichedOrderItems_sink FROM orderItems_view 
+WITH (
+   connector='kafka',
+   type='append-only',
+   properties.bootstrap.server='redpanda:29092',
+   topic='enriched-order-items'
+);
+```
+
 
 ## Apache Pinot - Enriched Order Items Table
 

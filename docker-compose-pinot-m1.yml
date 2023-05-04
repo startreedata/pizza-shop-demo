@@ -10,6 +10,8 @@ services:
     depends_on:
       - zookeeper
     healthcheck: {test: nc -z localhost 9000, interval: 1s}
+    networks: 
+      - pizzashop
   pinot-broker:
     image: apachepinot/pinot:0.11.0-arm64
     command: "StartBroker -zkAddress zookeeper:2181"
@@ -19,6 +21,8 @@ services:
       - "8099:8099"
     depends_on:
       - pinot-controller
+    networks: 
+      - pizzashop
   pinot-server:
     image: apachepinot/pinot:0.11.0-arm64
     container_name: "pinot-server"
@@ -26,6 +30,8 @@ services:
     restart: unless-stopped
     depends_on:
       - pinot-broker
+    networks: 
+      - pizzashop
   pinot-add-table:
     image: apachepinot/pinot:0.11.0-arm64
     container_name: "pinot-add-table"
@@ -39,3 +45,8 @@ services:
     - "JAVA_OPTS=-Dpinot.admin.system.exit=true"
     depends_on:
       - pinot-controller
+    networks: 
+      - pizzashop
+networks:
+  pizzashop:
+    name: pizzashop

@@ -27,7 +27,9 @@ rpk topic consume orders --brokers localhost:9092 | jq -c '.value | fromjson'
 
 ## Enrich stream
 
+```
 psql -h localhost -p 4566 -d dev -U root
+```
 
 ## Apache Pinot - Orders Table
 

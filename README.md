@@ -11,7 +11,7 @@ docker-compose \
   -f docker-compose-base.yml \
   -f docker-compose-pinot.yml \
   -f docker-compose-rwave.yml \
-  -f docker-compose-dashboard-enriched-quarkus.yml \
+  -f docker-compose-dashboard-enriched-only.yml \
   up
 ```
 
@@ -20,7 +20,7 @@ docker-compose \
   -f docker-compose-base.yml \
   -f docker-compose-pinot-m1.yml \
   -f docker-compose-rwave.yml \
-  -f docker-compose-dashboard-enriched-quarkus.yml \
+  -f docker-compose-dashboard-enriched-only.yml \
   up
 ```
 

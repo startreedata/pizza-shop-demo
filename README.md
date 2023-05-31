@@ -10,6 +10,7 @@ This repository contains the code for the Pizza Shop Demo.
 docker-compose \
   -f docker-compose-base.yml \
   -f docker-compose-pinot.yml \
+  -f docker-compose-rwave.yml \
   -f docker-compose-dashboard-enriched-quarkus.yml \
   up
 ```
@@ -18,6 +19,7 @@ docker-compose \
 docker-compose \
   -f docker-compose-base.yml \
   -f docker-compose-pinot-m1.yml \
+  -f docker-compose-rwave.yml \
   -f docker-compose-dashboard-enriched-quarkus.yml \
   up
 ```

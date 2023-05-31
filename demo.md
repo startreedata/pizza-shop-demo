@@ -3,7 +3,9 @@
 ```bash
 docker-compose \
   -f docker-compose-base.yml \
+  -f docker-compose-pinot.yml \
   -f docker-compose-rwave.yml \
+  -f docker-compose-dashboard-enriched-only.yml \
   up
 ```
 

@@ -33,6 +33,8 @@ rpk topic consume orders --brokers localhost:9092
 rpk topic consume orders --brokers localhost:9092 | jq -c '.value | fromjson'
 ```
 
+Navigate to http://localhost:8080 for the RedPanda UI
+
 ## Apache Pinot - Orders Table
 
 ```bash

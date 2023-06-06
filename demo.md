@@ -74,10 +74,6 @@ pygmentize -O style=github-dark streamlit/app.py | less
 rpk topic consume products --brokers localhost:9092 | jq -c '.value | fromjson'
 ```
 
-```bash
-rpk topic consume enriched-order-items --brokers localhost:9092 | jq -c '.value | fromjson'
-```
-
 Enrich stream:
 
 ```
@@ -156,6 +152,9 @@ WITH (
 );
 ```
 
+```bash
+rpk topic consume enriched-order-items --brokers localhost:9092 | jq -c '.value | fromjson'
+```
 
 ## Apache Pinot - Enriched Order Items Table
 

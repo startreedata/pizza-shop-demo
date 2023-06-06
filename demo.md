@@ -5,6 +5,7 @@ docker-compose \
   -f docker-compose-base.yml \
   -f docker-compose-pinot.yml \
   -f docker-compose-rwave.yml \
+  -f docker-compose-dashboard.yml \
   -f docker-compose-dashboard-enriched-only.yml \
   up
 ```
@@ -37,6 +38,8 @@ pygmentize -O style=github-dark pinot/config/schema.json
 pygmentize -O style=github-dark pinot/config/table.json
 ```
 
+Navigate to http://localhost:9000
+
 ```python
 from pinotdb import connect
 import pandas as pd
@@ -66,6 +69,8 @@ df = pd.DataFrame(curs, columns=[item[0] for item in curs.description])
 ```bash
 pygmentize -O style=github-dark streamlit/app.py | less
 ```
+
+Navigate to http://localhost:8501
 
 
 ## RisingWave - Joining products
@@ -172,3 +177,5 @@ pygmentize -O style=github-dark pinot/config/order_items_enriched/table.json | l
 ```bash
 pygmentize -O style=github-dark streamlit/app_enriched.py | less
 ```
+
+Navigate to http://localhost:8502

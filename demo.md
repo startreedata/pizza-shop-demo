@@ -21,6 +21,11 @@ use pizzashop;
 show tables;
 ```
 
+```sql
+select * from users LIMIT 10;
+select * from products LIMIT 5;
+```
+
 ## Orders stream
 
 ```bash

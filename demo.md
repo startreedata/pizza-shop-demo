@@ -20,6 +20,7 @@ docker-compose \
   -f docker-compose-base.yml \
   -f docker-compose-pinot-m1.yml \
   -f docker-compose-rwave.yml \
+  -f docker-compose-dashboard.yml \
   -f docker-compose-dashboard-enriched-only.yml \
   up
 ```
@@ -111,7 +112,7 @@ Create sources
 ```sql
 CREATE SOURCE IF NOT EXISTS orders (
     id varchar,
-    createdAt TIMESTAMP,
+    "createdAt" TIMESTAMP,
     userId integer,
     status varchar,
     price double,
@@ -154,10 +155,10 @@ Create materialized view
 CREATE MATERIALIZED VIEW orderItems_view AS
 WITH orderItems AS (
     select unnest(items) AS orderItem, 
-           id AS "orderId", createdAt           
+           id AS "orderId", "createdAt"
     FROM orders
 )
-SELECT "orderId", createdAt,
+SELECT "orderId", "createdAt",
        ((orderItem).productid, (orderItem).quantity, (orderItem).price)::
        STRUCT<productId varchar, quantity varchar, price varchar> AS "orderItem",
         (products.id, products.name, products.description, products.category, products.image, products.price)::
@@ -176,6 +177,10 @@ WITH (
    properties.bootstrap.server='redpanda:29092',
    topic='enriched-order-items'
 );
+```
+
+```bash
+pygmentize -O style=github-dark rwave/rwave.sql | less
 ```
 
 ```bash

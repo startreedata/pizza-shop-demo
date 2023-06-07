@@ -11,3 +11,8 @@ services:
     environment:
       - PINOT_SERVER
       - PINOT_PORT
+    networks: 
+      - pizzashop
+networks:
+  pizzashop:
+    name: pizzashop

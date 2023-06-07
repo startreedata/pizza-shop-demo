@@ -9,7 +9,7 @@ import os
 def path_to_image_html(path):
     return '<img src="' + path + '" width="60" >'
 
-@st.cache
+@st.cache_data
 def convert_df(input_df):
      return input_df.to_html(escape=False, formatters=dict(image=path_to_image_html))
 

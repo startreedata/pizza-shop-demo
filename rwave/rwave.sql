@@ -42,10 +42,10 @@ ROW FORMAT JSON;
 
 WITH orderItems AS (
     select unnest(items) AS orderItem, 
-           id AS orderId, createdAt           
+           id AS orderId, "createdAt"           
     FROM orders
 )
-SELECT orderId, createdAt,
+SELECT orderId, "createdAt",
        ((orderItem).productid, (orderItem).quantity, (orderItem).price)::
        STRUCT<productId varchar, quantity varchar, price varchar> AS orderItem,
         (products.id, products.name, products.description, products.category, products.image, products.price)::
@@ -57,10 +57,10 @@ LIMIT 10
 CREATE MATERIALIZED VIEW orderItems_view AS
 WITH orderItems AS (
     select unnest(items) AS orderItem, 
-           id AS orderId, createdAt           
+           id AS orderId, "createdAt"           
     FROM orders
 )
-SELECT orderId, createdAt,
+SELECT orderId, "createdAt",
        ((orderItem).productid, (orderItem).quantity, (orderItem).price)::
        STRUCT<productId varchar, quantity varchar, price varchar> AS "orderItem",
         (products.id, products.name, products.description, products.category, products.image, products.price)::

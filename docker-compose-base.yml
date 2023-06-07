@@ -16,19 +16,6 @@ services:
       - ./mysql/data:/var/lib/mysql-files/data
     networks: 
       - pizzashop
-  zookeeper:
-    image: zookeeper:3.8.0
-    container_name: zookeeper
-    hostname: zookeeper
-    ports:
-      - "2181:2181"
-    environment:
-      ZOO_MY_ID: 1
-      ZOO_PORT: 2181
-      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
-    networks: 
-      - pizzashop
-
   redpanda:
     container_name: "redpanda"
     image: docker.redpanda.com/vectorized/redpanda:v22.2.2

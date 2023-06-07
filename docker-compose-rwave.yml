@@ -1,19 +1,19 @@
 version: '3.7'
 services:
-  compactor-0:
+  compactor-pizzashop:
     image: "ghcr.io/risingwavelabs/risingwave:latest"
     command:
       - compactor-node
       - "--listen-addr"
       - "0.0.0.0:6660"
       - "--advertise-addr"
-      - "compactor-0:6660"
+      - "compactor-pizzashop:6660"
       - "--prometheus-listener-addr"
       - "0.0.0.0:1260"
       - "--metrics-level"
       - "1"
       - "--meta-address"
-      - "http://meta-node-0:5690"
+      - "http://meta-node-pizzashop:5690"
       - "--config-path"
       - /risingwave.toml
     expose:
@@ -21,15 +21,15 @@ services:
       - "1260"
     ports: []
     depends_on:
-      - meta-node-0
-      - minio-0
+      - meta-node-pizzashop
+      - minio-pizzashop
     volumes:
       - "./rwave/risingwave.toml:/risingwave.toml"
     environment:
       RUST_BACKTRACE: "1"
       # If ENABLE_TELEMETRY is not set, telemetry will start by default
       ENABLE_TELEMETRY: ${ENABLE_TELEMETRY:-true}
-    container_name: compactor-0
+    container_name: compactor-pizzashop
     healthcheck:
       test:
         - CMD
@@ -41,22 +41,22 @@ services:
       retries: 5
     networks: 
       - pizzashop
-  compute-node-0:
+  compute-node-pizzashop:
     image: "ghcr.io/risingwavelabs/risingwave:latest"
     command:
       - compute-node
       - "--listen-addr"
       - "0.0.0.0:5688"
       - "--advertise-addr"
-      - "compute-node-0:5688"
+      - "compute-node-pizzashop:5688"
       - "--prometheus-listener-addr"
       - "0.0.0.0:1222"
       - "--metrics-level"
       - "1"
       - "--meta-address"
-      - "http://meta-node-0:5690"
+      - "http://meta-node-pizzashop:5690"
       - "--connector-rpc-endpoint"
-      - "connector-node:50051"
+      - "connector-node-pizzashop:50051"
       - "--config-path"
       - /risingwave.toml
     expose:
@@ -64,15 +64,15 @@ services:
       - "1222"
     ports: []
     depends_on:
-      - meta-node-0
-      - minio-0
+      - meta-node-pizzashop
+      - minio-pizzashop
     volumes:
       - "./rwave/risingwave.toml:/risingwave.toml"
     environment:
       RUST_BACKTRACE: "1"
       # If ENABLE_TELEMETRY is not set, telemetry will start by default
       ENABLE_TELEMETRY: ${ENABLE_TELEMETRY:-true}
-    container_name: compute-node-0
+    container_name: compute-node-pizzashop
     healthcheck:
       test:
         - CMD
@@ -84,18 +84,18 @@ services:
       retries: 5
     networks: 
       - pizzashop
-  etcd-0:
+  etcd-pizzashop:
     image: "quay.io/coreos/etcd:v3.5.7"
     command:
       - /usr/local/bin/etcd
       - "--listen-client-urls"
       - "http://0.0.0.0:2388"
       - "--advertise-client-urls"
-      - "http://etcd-0:2388"
+      - "http://etcd-pizzashop:2388"
       - "--listen-peer-urls"
       - "http://0.0.0.0:2389"
       - "--initial-advertise-peer-urls"
-      - "http://etcd-0:2389"
+      - "http://etcd-pizzashop:2389"
       - "--listen-metrics-urls"
       - "http://0.0.0.0:2379"
       - "--name"
@@ -117,9 +117,9 @@ services:
       - "2389:2389"
     depends_on: []
     volumes:
-      - "etcd-0:/etcd-data"
+      - "etcd-pizzashop:/etcd-data"
     environment: {}
-    container_name: etcd-0
+    container_name: etcd-pizzashop
     healthcheck:
       test:
         - CMD
@@ -131,16 +131,16 @@ services:
       retries: 5
     networks: 
       - pizzashop
-  frontend-node-0:
+  frontend-node-pizzashop:
     image: "ghcr.io/risingwavelabs/risingwave:latest"
     command:
       - frontend-node
       - "--listen-addr"
       - "0.0.0.0:4566"
       - "--meta-addr"
-      - "http://meta-node-0:5690"
+      - "http://meta-node-pizzashop:5690"
       - "--advertise-addr"
-      - "frontend-node-0:4566"
+      - "frontend-node-pizzashop:4566"
       - "--config-path"
       - /risingwave.toml
       - "--prometheus-listener-addr"
@@ -152,14 +152,14 @@ services:
     ports:
       - "4566:4566"
     depends_on:
-      - meta-node-0
+      - meta-node-pizzashop
     volumes:
       - "./rwave/risingwave.toml:/risingwave.toml"
     environment:
       RUST_BACKTRACE: "1"
       # If ENABLE_TELEMETRY is not set, telemetry will start by default
       ENABLE_TELEMETRY: ${ENABLE_TELEMETRY:-true}
-    container_name: frontend-node-0
+    container_name: frontend-node-pizzashop
     healthcheck:
       test:
         - CMD
@@ -171,14 +171,14 @@ services:
       retries: 5
     networks: 
       - pizzashop
-  meta-node-0:
+  meta-node-pizzashop:
     image: "ghcr.io/risingwavelabs/risingwave:latest"
     command:
       - meta-node
       - "--listen-addr"
       - "0.0.0.0:5690"
       - "--advertise-addr"
-      - "meta-node-0:5690"
+      - "meta-node-pizzashop:5690"
       - "--dashboard-host"
       - "0.0.0.0:5691"
       - "--prometheus-host"
@@ -186,11 +186,11 @@ services:
       - "--backend"
       - etcd
       - "--etcd-endpoints"
-      - "etcd-0:2388"
+      - "etcd-pizzashop:2388"
       - "--connector-rpc-endpoint"
-      - "connector-node:50051"
+      - "connector-node-pizzashop:50051"
       - "--state-store"
-      - "hummock+minio://hummockadmin:hummockadmin@minio-0:9301/hummock001"
+      - "hummock+minio://hummockadmin:hummockadmin@minio-pizzashop:9301/hummock001"
       - "--data-directory"
       - "hummock_001"
       - "--config-path"
@@ -203,14 +203,14 @@ services:
       - "5690:5690"
       - "5691:5691"
     depends_on:
-      - "etcd-0"
+      - "etcd-pizzashop"
     volumes:
       - "./rwave/risingwave.toml:/risingwave.toml"
     environment:
       RUST_BACKTRACE: "1"
       # If ENABLE_TELEMETRY is not set, telemetry will start by default
       ENABLE_TELEMETRY: ${ENABLE_TELEMETRY:-true}
-    container_name: meta-node-0
+    container_name: meta-node-pizzashop
     healthcheck:
       test:
         - CMD
@@ -222,16 +222,16 @@ services:
       retries: 5
     networks: 
       - pizzashop
-  connector-node:
+  connector-node-pizzashop:
     image: ghcr.io/risingwavelabs/risingwave:latest
     entrypoint: "/risingwave/bin/connector-node/start-service.sh"
     ports:
       - 50051
       - 50052
-    container_name: connector-node
+    container_name: connector-node-pizzashop
     networks: 
       - pizzashop
-  minio-0:
+  minio-pizzashop:
     image: "quay.io/minio/minio:latest"
     command:
       - server
@@ -248,7 +248,7 @@ services:
       - "9400:9400"
     depends_on: []
     volumes:
-      - "minio-0:/data"
+      - "minio-pizzashop:/data"
     entrypoint: "
 
       /bin/sh -c '
@@ -263,10 +263,10 @@ services:
     environment:
       MINIO_CI_CD: "1"
       MINIO_PROMETHEUS_AUTH_TYPE: public
-      MINIO_PROMETHEUS_URL: "http://prometheus-0:9500"
+      MINIO_PROMETHEUS_URL: "http://prometheus-pizzashop:9500"
       MINIO_ROOT_PASSWORD: hummockadmin
       MINIO_ROOT_USER: hummockadmin
-    container_name: minio-0
+    container_name: minio-pizzashop
     healthcheck:
       test:
         - CMD
@@ -278,7 +278,7 @@ services:
       retries: 5
     networks: 
       - pizzashop
-  prometheus-0:
+  prometheus-pizzashop:
     image: "prom/prometheus:latest"
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
@@ -293,10 +293,10 @@ services:
       - "9500:9500"
     depends_on: []
     volumes:
-      - "prometheus-0:/prometheus"
+      - "prometheus-pizzashop:/prometheus"
       - "./rwave/prometheus.yaml:/etc/prometheus/prometheus.yml"
     environment: {}
-    container_name: prometheus-0
+    container_name: prometheus-pizzashop
     healthcheck:
       test:
         - CMD
@@ -309,13 +309,11 @@ services:
     networks: 
       - pizzashop
 volumes:
-  etcd-0:
+  etcd-pizzashop:
     external: false
-  grafana-0:
+  minio-pizzashop:
     external: false
-  minio-0:
-    external: false
-  prometheus-0:
+  prometheus-pizzashop:
     external: false
 networks:
   pizzashop:

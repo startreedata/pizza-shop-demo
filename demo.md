@@ -1,11 +1,25 @@
 # Demo Script
 
+Start all the things:
+
 ```bash
 docker-compose \
   -f docker-compose-base.yml \
   -f docker-compose-pinot.yml \
   -f docker-compose-rwave.yml \
   -f docker-compose-dashboard.yml \
+  -f docker-compose-dashboard-enriched-only.yml \
+  -f docker-compose-dashboard.yml \
+  up
+```
+
+Or if you're using Mac M1:
+
+```bash
+docker-compose \
+  -f docker-compose-base.yml \
+  -f docker-compose-pinot-m1.yml \
+  -f docker-compose-rwave.yml \
   -f docker-compose-dashboard-enriched-only.yml \
   up
 ```

@@ -1,8 +1,20 @@
 version: "3"
 services:
+  zookeeper:
+    image: zookeeper:3.8.0
+    container_name: zookeeper-pizzashop
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_PORT: 2181
+      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+    networks: 
+      - pizzashop
   pinot-controller:
-    image: apachepinot/pinot:0.11.0-arm64
-    command: "StartController -zkAddress zookeeper:2181"
+    image: apachepinot/pinot:0.12.0-arm64
+    command: "StartController -zkAddress zookeeper-pizzashop:2181"
     container_name: "pinot-controller"
     restart: unless-stopped
     ports:
@@ -13,8 +25,8 @@ services:
     networks: 
       - pizzashop
   pinot-broker:
-    image: apachepinot/pinot:0.11.0-arm64
-    command: "StartBroker -zkAddress zookeeper:2181"
+    image: apachepinot/pinot:0.12.0-arm64
+    command: "StartBroker -zkAddress zookeeper-pizzashop:2181"
     restart: unless-stopped
     container_name: "pinot-broker"
     ports:
@@ -24,16 +36,16 @@ services:
     networks: 
       - pizzashop
   pinot-server:
-    image: apachepinot/pinot:0.11.0-arm64
+    image: apachepinot/pinot:0.12.0-arm64
     container_name: "pinot-server"
-    command: "StartServer -zkAddress zookeeper:2181"
+    command: "StartServer -zkAddress zookeeper-pizzashop:2181"
     restart: unless-stopped
     depends_on:
       - pinot-broker
     networks: 
       - pizzashop
   pinot-add-table:
-    image: apachepinot/pinot:0.11.0-arm64
+    image: apachepinot/pinot:0.12.0-arm64
     container_name: "pinot-add-table"
     volumes:
       - ./pinot/config:/config

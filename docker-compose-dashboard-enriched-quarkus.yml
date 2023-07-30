@@ -1,4 +1,4 @@
-version: "3"
+version: "3.8"
 services:
   dashboard-enriched:
     build: streamlit
@@ -7,7 +7,8 @@ services:
     ports:
       - "8502:8501"
     depends_on:
-      - pinot-controller
+      pinot-controller:
+        condition: service_healthy
     volumes:
       - ./streamlit/app_enriched.py:/workdir/app.py
     environment:
@@ -23,4 +24,5 @@ services:
       - PRODUCTS_TOPIC=products
       - ENRICHED_ORDERS_TOPIC=enriched-order-items
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy

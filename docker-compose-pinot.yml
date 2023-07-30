@@ -1,4 +1,4 @@
-version: "3"
+version: "3.8"
 services:
   pinot-controller:
     image: apachepinot/pinot:0.12.0
@@ -7,9 +7,12 @@ services:
     restart: unless-stopped
     ports:
       - "9000:9000"
+    healthcheck:
+      test: wget -q -O - localhost:9000/health | grep "OK"
+      interval: 3s
     depends_on:
-      - zookeeper
-    healthcheck: {test: nc -z localhost 9000, interval: 1s}
+      zookeeper:
+        condition: service_healthy
   pinot-broker:
     image: apachepinot/pinot:0.12.0
     command: "StartBroker -zkAddress zookeeper:2181"
@@ -17,15 +20,20 @@ services:
     container_name: "pinot-broker"
     ports:
       - "8099:8099"
+    healthcheck:
+      test: wget -q -O - localhost:8099/health | grep "OK"
+      interval: 3s
     depends_on:
-      - pinot-controller
+      pinot-controller:
+        condition: service_healthy
   pinot-server:
     image: apachepinot/pinot:0.12.0
     container_name: "pinot-server"
     command: "StartServer -zkAddress zookeeper:2181"
     restart: unless-stopped
     depends_on:
-      - pinot-broker
+      pinot-broker:
+        condition: service_healthy
   pinot-add-table:
     image: apachepinot/pinot:0.12.0
     container_name: "pinot-add-table"
@@ -38,4 +46,5 @@ services:
     environment:
     - "JAVA_OPTS=-Dpinot.admin.system.exit=true"
     depends_on:
-      - pinot-controller
+      pinot-controller:
+        condition: service_healthy

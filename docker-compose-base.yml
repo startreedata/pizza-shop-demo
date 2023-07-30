@@ -1,11 +1,11 @@
-version: "3"
+version: "3.8"
 services:
   mysql:
     image: mysql/mysql-server:8.0.27
     hostname: mysql
     container_name: mysql
     ports:
-      - 3306:3306
+      - "3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=debezium
       - MYSQL_USER=mysqluser
@@ -24,6 +24,10 @@ services:
       ZOO_MY_ID: 1
       ZOO_PORT: 2181
       ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+      ZOO_4LW_COMMANDS_WHITELIST: ruok
+    healthcheck:
+      test: echo "ruok" | nc localhost 2181 | grep -q "imok"
+      interval: 3s
   kafka:
     image: confluentinc/cp-kafka:latest
     hostname: kafka
@@ -39,15 +43,20 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
     depends_on:
-      [zookeeper]
-    healthcheck: {test: nc -z localhost 9092, interval: 1s}
+      zookeeper:
+        condition: service_healthy
+    healthcheck:
+      test: nc -z localhost 9092
+      interval: 3s
   orders-service:
     build: orders-service
     restart: unless-stopped
     container_name: orders-service
     depends_on:
-      - mysql
-      - kafka
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
       - MYSQL_SERVER=mysql
       - KAFKA_BROKER_HOSTNAME=kafka

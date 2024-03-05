@@ -52,4 +52,29 @@ services:
     image: enrichment-bytewax
     build: enrichment-bytewax
     container_name: enrichment-bytewax
-    depends_on: [ "kafka" ]
+    depends_on:
+      - kafka
+
+  console:
+    hostname: console
+    container_name: console
+    image: docker.redpanda.com/redpandadata/console:latest
+    restart: on-failure
+    entrypoint: /bin/sh
+    command: -c "echo \"$$CONSOLE_CONFIG_FILE\" > /tmp/config.yml; /app/console"
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        server:
+          listenPort: 9080
+        kafka:
+          brokers: ["kafka:9092"]
+          schemaRegistry:
+            enabled: false
+            urls: ["http://schema-registry:8081"]
+        connect:
+          enabled: false
+    ports:
+      - 9080:9080
+    depends_on:
+      - kafka

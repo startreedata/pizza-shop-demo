@@ -1,31 +1,28 @@
 import json
 import os
-import orjson
-
+from dataclasses import dataclass
 from typing import Dict, Any
 
+import orjson
 from bytewax import operators as op
-from bytewax.connectors.kafka import KafkaSinkMessage, KafkaSourceMessage, operators as kop
-from bytewax.dataflow import Dataflow
+from bytewax.connectors.kafka import KafkaSinkMessage, operators as kop
 from bytewax.connectors.kafka.serde import SchemaDeserializer
+from bytewax.dataflow import Dataflow
 
-from bytewax.testing import TestingSource
-
-from dataclasses import dataclass
 
 @dataclass
 class OrderItemWithContext:
     id: str
     item: str
     createdAt: str
-    
-# TODO: Read environment variables, I ignore these in the code for now but cool kids use them
+
+
 orders_topic = os.getenv('ORDERS_TOPIC', 'orders')
 products_topic = os.getenv('PRODUCTS_TOPIC', 'products')
-enriched_order_items_topic = os.getenv('ENRICHED_ORDER_ITEMS_TOPIC', 'enriched-order-items')
+enriched_order_items_topic = os.getenv('ENRICHED_ORDERS_TOPIC', 'enriched-order-items')
 
-# brokers = os.getenv('BROKERS').split(',')
-brokers = ["kafka:9092"]
+brokers = os.getenv('BOOTSTRAP_SERVERS', '[localhost:29092]').split(',')
+
 
 def extract_items(x):
     json_value = json.loads(x.value)
@@ -36,9 +33,10 @@ def extract_items(x):
             id=json_value["id"],
             item=item,
             createdAt=json_value["createdAt"]
-        )   
+        )
         result.append((item["productId"], order_item_with_context))
     return result
+
 
 def to_kafka_sink_message(x):
     order = x[1].get("order")
@@ -54,6 +52,7 @@ def to_kafka_sink_message(x):
         }
         return KafkaSinkMessage(x[0], json.dumps(result))
 
+
 class KeyDeserializer(SchemaDeserializer[bytes, str]):
     def de(self, obj: bytes) -> str:
         return str(obj)
@@ -63,9 +62,17 @@ class JSONDeserializer(SchemaDeserializer[bytes, Dict]):
     def de(self, obj: bytes) -> Dict[Any, Any]:
         return orjson.loads(obj)
 
-flow = Dataflow("test")
-in_orders = kop.input("kafka-in-orders", flow, brokers=brokers, topics=['orders'])
-in_products = kop.input("kafka-in-products", flow, brokers=brokers, topics=['products'])
+
+flow = Dataflow("product-enrichment")
+in_orders = kop.input("kafka-in-orders",
+                      flow,
+                      brokers=brokers,
+                      topics=[orders_topic])
+
+in_products = kop.input("kafka-in-products",
+                        flow,
+                        brokers=brokers,
+                        topics=[products_topic])
 
 items = op.flat_map("flat_map", in_orders.oks, extract_items)
 
@@ -78,11 +85,14 @@ json_products = kop.deserialize(
 
 keyed_products = op.key_on("key_on_identifier", json_products.oks, lambda x: x.value["id"])
 
-# not sure there is a point to use join_named at all given that I have to transform it anyway, consult TopologyProducer.java to see the expected outcome
+# not sure if there is a point to use join_named at all given that I have to transform it anyway, consult TopologyProducer.java to see the expected outcome
 joined = op.join_named("join", running=True, product=keyed_products, order=items)
 
 op.inspect("joined", joined)
 res = op.filter_map("transform", joined, to_kafka_sink_message)
 
 op.inspect("out", res)
-kop.output("kafka-out", res, brokers=brokers, topic='enriched-order-items')
+kop.output("kafka-out",
+           res,
+           brokers=brokers,
+           topic=enriched_order_items_topic)

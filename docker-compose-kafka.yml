@@ -1,0 +1,80 @@
+version: "3.8"
+
+services:
+  kafka:
+    image: docker.io/bitnami/kafka:3.6
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    healthcheck: { test: nc -z localhost 9092, interval: 20s }
+    environment:
+      # KRaft settings
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Listeners
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092,PLAINTEXT_HOST://localhost:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+  
+  orders-service:
+    build: orders-service
+    restart: unless-stopped
+    container_name: orders-service
+    depends_on:
+      - mysql
+      - kafka
+    environment:
+      - MYSQL_SERVER=mysql
+      - KAFKA_BROKER_HOSTNAME=kafka
+      - KAFKA_BROKER_PORT=9092
+  
+  mysql:
+    image: mysql/mysql-server:8.0.27
+    hostname: mysql
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=debezium
+      - MYSQL_USER=mysqluser
+      - MYSQL_PASSWORD=mysqlpw
+    volumes:
+      - ./mysql/mysql.cnf:/etc/mysql/conf.d
+      - ./mysql/mysql_bootstrap.sql:/docker-entrypoint-initdb.d/mysql_bootstrap.sql
+      - ./mysql/data:/var/lib/mysql-files/data
+  
+  dataflow:
+    image: enrichment-bytewax
+    build: enrichment-bytewax
+    container_name: enrichment-bytewax
+    depends_on:
+      - kafka
+
+  console:
+    hostname: console
+    container_name: console
+    image: docker.redpanda.com/redpandadata/console:latest
+    restart: on-failure
+    entrypoint: /bin/sh
+    command: -c "echo \"$$CONSOLE_CONFIG_FILE\" > /tmp/config.yml; /app/console"
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        server:
+          listenPort: 9080
+        kafka:
+          brokers: ["kafka:9092"]
+          schemaRegistry:
+            enabled: false
+            urls: ["http://schema-registry:8081"]
+        connect:
+          enabled: false
+    ports:
+      - "9080:9080"
+    depends_on:
+      - kafka

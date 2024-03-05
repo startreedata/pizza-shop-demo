@@ -73,8 +73,9 @@ services:
     depends_on:
       - kafka
 
-  dataflow:
+  enrichment:
     build: enrichment-bytewax
+    restart: unless-stopped
     image: enrichment-bytewax
     container_name: enrichment-bytewax
     environment:
@@ -85,10 +86,10 @@ services:
     depends_on:
       - kafka
   
-  #  kafka-streams-quarkus:
-  #    build: kafka-streams-quarkus
+  #  enrichment:
+  #    build: enrichment-kafka-streams
   #    restart: unless-stopped
-  #    container_name: kafka-streams-quarkus
+  #    container_name: enrichment-kafka-streams
   #    environment:
   #      - QUARKUS_KAFKA_STREAMS_BOOTSTRAP_SERVERS=kafka:9092
   #      - ORDERS_TOPIC=orders

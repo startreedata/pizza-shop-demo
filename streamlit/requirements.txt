@@ -1,4 +1,4 @@
-streamlit==1.12.0
+streamlit==1.32.0
 plotly==5.10.0
 pinotdb==0.4.5
 ipywidgets==8.0.2

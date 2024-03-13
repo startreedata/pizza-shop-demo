@@ -6,13 +6,6 @@ import time
 import plotly.graph_objects as go
 import os
 
-def path_to_image_html(path):
-    return '<img src="' + path + '" width="60" >'
-
-@st.cache
-def convert_df(input_df):
-     return input_df.to_html(escape=False, formatters=dict(image=path_to_image_html))
-
 pinot_host=os.environ.get("PINOT_SERVER", "pinot-broker")
 pinot_port=os.environ.get("PINOT_PORT", 8099)
 conn = connect(pinot_host, pinot_port)
@@ -21,17 +14,15 @@ st.set_page_config(layout="wide")
 st.title("All About That Dough Dashboard 🍕")
 
 now = datetime.now()
-dt_string = now.strftime("%d %B %Y %H:%M:%S")
-st.write(f"Last update: {dt_string}")
+dt_string = now.strftime("%B %-d, %Y at %-I:%M:%S %p")
+st.info(f"**Last update:** {dt_string}", icon="ℹ️")
 
 # Use session state to keep track of whether we need to auto refresh the page and the refresh frequency
-
 if not "sleep_time" in st.session_state:
     st.session_state.sleep_time = 5
 
 if not "auto_refresh" in st.session_state:
     st.session_state.auto_refresh = True
-
 
 mapping2 = {
     "1 hour": {"period": "PT60M", "previousPeriod": "PT120M", "granularity": "minute"},
@@ -41,18 +32,19 @@ mapping2 = {
     "1 minute": {"period": "PT1M", "previousPeriod": "PT2M", "granularity": "second"}
 }
 
-with st.expander("Configure Dashboard", expanded=True):
-    left, right = st.columns(2)
+with st.expander("Dashboard settings", expanded=True):
+    if st.session_state.auto_refresh:
+        left, right = st.columns(2)
 
-    with left:
-        auto_refresh = st.checkbox('Auto Refresh?', st.session_state.auto_refresh)
+        with left:
+            auto_refresh = st.toggle('Auto-refresh', value=st.session_state.auto_refresh)
 
-        if auto_refresh:
-            number = st.number_input('Refresh rate in seconds', value=st.session_state.sleep_time)
-            st.session_state.sleep_time = number
+            if auto_refresh:
+                number = st.number_input('Refresh rate in seconds', value=st.session_state.sleep_time)
+                st.session_state.sleep_time = number
 
-    with right:
-            time_ago = st.radio("Time period to cover", mapping2.keys(), horizontal=True, key="time_ago", index=len(mapping2.keys())-1)
+        with right:
+                time_ago = st.radio("Display data from the last", mapping2.keys(), horizontal=True, key="time_ago", index=len(mapping2.keys())-1)
 
 curs = conn.cursor()
 
@@ -64,9 +56,7 @@ try:
 
     pinot_available = curs.description is not None
 except Exception as e:
-    st.warning(f"""Unable to connect to or query Apache Pinot [{pinot_host}:{pinot_port}] 
-
-Exception: {e}""",icon="⚠️")
+    st.warning(f"""Unable to connect to or query Apache Pinot [{pinot_host}:{pinot_port}] Exception: {e}""",icon="⚠️")
 
 if pinot_available:
     query = """
@@ -85,20 +75,17 @@ if pinot_available:
     })
 
     df = pd.DataFrame(curs, columns=[item[0] for item in curs.description])
+    metrics_container = st.container(border=True)
+    metrics_container.subheader(f"Orders in the last {time_ago}")
 
-    st.subheader(f"Orders in the last {time_ago}")
-
-    metric1, metric2, metric3 = st.columns(3)
-
-
-    metric1.metric(
-        label="# of Orders",
+    num_orders, rev, order_val = metrics_container.columns(3)
+    num_orders.metric(
+        label="Number of orders",
         value="{:,}".format(int(df['events1Min'].values[0])),
         delta="{:,}".format(int(df['events1Min'].values[0] - df['events1Min2Min'].values[0])) if df['events1Min2Min'].values[0] > 0 else None
     )
 
-
-    metric2.metric(
+    rev.metric(
         label="Revenue in ₹",
         value="{:,.2f}".format(df['total1Min'].values[0]),
         delta="{:,.2f}".format(df['total1Min'].values[0] - df['total1Min2Min'].values[0]) if df['total1Min2Min'].values[0] > 0 else None
@@ -107,7 +94,7 @@ if pinot_available:
     average_order_value_1min = df['total1Min'].values[0] / int(df['events1Min'].values[0])
     average_order_value_1min_2min = df['total1Min2Min'].values[0] / int(df['events1Min2Min'].values[0]) if int(df['events1Min2Min'].values[0]) > 0 else 0
 
-    metric3.metric(
+    order_val.metric(
         label="Average order value in ₹",
         value="{:,.2f}".format(average_order_value_1min),
         delta="{:,.2f}".format(average_order_value_1min - average_order_value_1min_2min) if average_order_value_1min_2min > 0 else None
@@ -146,7 +133,8 @@ if pinot_available:
             ])
             fig.update_layout(showlegend=False, title=f"Orders per {mapping2[time_ago]['granularity']}", margin=dict(l=0, r=0, t=40, b=0),)
             fig.update_yaxes(range=[0, df_ts["orders"].max() * 1.1])
-            st.plotly_chart(fig, use_container_width=True) 
+            with st.container(border=True):
+                st.plotly_chart(fig, use_container_width=True) 
 
         with col2:
             revenue = df_ts_melt[df_ts_melt.variable == "revenue"]
@@ -162,100 +150,95 @@ if pinot_available:
             ])
             fig.update_layout(showlegend=False, title=f"Revenue per {mapping2[time_ago]['granularity']}", margin=dict(l=0, r=0, t=40, b=0),)
             fig.update_yaxes(range=[0, df_ts["revenue"].max() * 1.1])
-            st.plotly_chart(fig, use_container_width=True) 
-
-    # CSS to inject contained in a string
-    hide_table_row_index = """
-    <style>
-    thead tr th:first-child {display:none}
-    tbody th {display:none}
-    tbody tr th:first-child {display:none}
-    div.stMarkdown table.dataframe { 
-        width: 100%;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    div.stMarkdown table.dataframe thead tr {
-        text-align: center !important; 
-    }
-
-    div.stMarkdown table.dataframe, div.stMarkdown table.dataframe tbody tr td, div.stMarkdown table.dataframe thead tr th {
-        border:none
-    }
-
-    div.stMarkdown table.dataframe tbody tr, div.stMarkdown table.dataframe thead tr {
-        height: 75px;
-    }
-
-    div.stMarkdown table.dataframe tbody tr:nth-child(even) {
-        background: #efefef
-    }             
-    </style>
-    """
-
-    # Inject CSS with Markdown
-    st.markdown(hide_table_row_index, unsafe_allow_html=True)
+            with st.container(border=True):
+                st.plotly_chart(fig, use_container_width=True) 
 
     left, right = st.columns(2)
 
     with left:
-        st.subheader("Most popular items")
-
         curs.execute("""
-        SELECT "product.name" AS product, 
-               "product.image" AS image,
-                distinctcount(orderId) AS orders,
-                sum("orderItem.quantity") AS quantity
-        FROM order_items_enriched
-        where ts > ago(%(timeAgo)s)
-        group by product, image
-        ORDER BY count(*) DESC
-        LIMIT 5
-        """, {"timeAgo": mapping2[time_ago]["period"]})
+        SELECT ToDateTime(ts, 'HH:mm:ss:SSS') AS dateTime, status, price, userId, productsOrdered, totalQuantity
+        FROM orders
+        ORDER BY ts DESC
+        LIMIT 10
+        """)
 
         df = pd.DataFrame(curs, columns=[item[0] for item in curs.description])
-        df["quantityPerOrder"] = df["quantity"] / df["orders"]
-
-        html = convert_df(df)
-        st.markdown(html, unsafe_allow_html=True)
-
+        # Potential todo: convert time to datetime for better formatting in data_editor
+        with st.container(border=True):
+            st.subheader("Latest orders")
+            st.data_editor(
+                df,
+                column_config={
+                    "dateTime": "Time",
+                    "status": "Status",
+                    "price": st.column_config.NumberColumn("Price", format="₹%.2f"),
+                    "userId": st.column_config.NumberColumn("User ID", format="%d"),
+                    "productsOrdered" : st.column_config.NumberColumn("Quantity", help="Quantity of distinct products ordered", format="%d"),
+                    "totalQuantity" : st.column_config.NumberColumn("Total quantity", help="Total quantity ordered", format="%d"),
+                },
+                disabled=True
+            )
+        
     with right:
-        st.subheader("Most popular categories")
+        with st.container(border=True):
 
-        curs.execute("""
-        SELECT "product.category" AS category, 
-                distinctcount(orderId) AS orders,
-                sum("orderItem.quantity") AS quantity
-        FROM order_items_enriched
-        where ts > ago(%(timeAgo)s)
-        group by category
-        ORDER BY count(*) DESC
-        LIMIT 5
-        """, {"timeAgo": mapping2[time_ago]["period"]})
+            st.subheader("Most popular categories")
 
-        df = pd.DataFrame(curs, columns=[item[0] for item in curs.description])
-        df["quantityPerOrder"] = df["quantity"] / df["orders"]
+            curs.execute("""
+            SELECT "product.category" AS category, 
+                    distinctcount(orderId) AS orders,
+                    sum("orderItem.quantity") AS quantity
+            FROM order_items_enriched
+            where ts > ago(%(timeAgo)s)
+            group by category
+            ORDER BY count(*) DESC
+            LIMIT 5
+            """, {"timeAgo": mapping2[time_ago]["period"]})
 
-        html = convert_df(df)
-        st.markdown(html, unsafe_allow_html=True)
+            df = pd.DataFrame(curs, columns=[item[0] for item in curs.description])
+            df["quantityPerOrder"] = df["quantity"] / df["orders"]
+            
+            st.data_editor(
+                df,
+                column_config={
+                    "category": "Category",
+                    "orders": st.column_config.NumberColumn("Number of orders", format="%d"),
+                    "quantity": st.column_config.NumberColumn("Total quantity ordered", format="$%d"),
+                    "quantityPerOrder": st.column_config.NumberColumn("Average quantity per order", format="%d"),
+                },
+                disabled=True
+            )
 
     curs.execute("""
-    SELECT ToDateTime(ts, 'HH:mm:ss:SSS') AS dateTime, status, price, userId, productsOrdered, totalQuantity
-    FROM orders
-    ORDER BY ts DESC
-    LIMIT 10
-    """)
+    SELECT "product.name" AS product, 
+            "product.image" AS image,
+            distinctcount(orderId) AS orders,
+            sum("orderItem.quantity") AS quantity
+    FROM order_items_enriched
+    where ts > ago(%(timeAgo)s)
+    group by product, image
+    ORDER BY count(*) DESC
+    LIMIT 5
+    """, {"timeAgo": mapping2[time_ago]["period"]})
 
     df = pd.DataFrame(curs, columns=[item[0] for item in curs.description])
+    df["quantityPerOrder"] = df["quantity"] / df["orders"]
     
-    st.subheader("Latest Orders")
-
-    html = convert_df(df)
-
-    st.markdown(
-        html,
-        unsafe_allow_html=True
-    )
+    with st.container(border=True):
+        st.subheader("Most popular items")
+        st.data_editor(
+            df,
+            use_container_width=True,
+            column_config={
+                "product": "Product",
+                "image": st.column_config.ImageColumn(label="Image",width="medium"),
+                "orders": st.column_config.NumberColumn("Number of orders", format="%d"),
+                "quantity": st.column_config.NumberColumn("Total quantity ordered", format="$%d"),
+                "quantityPerOrder": st.column_config.NumberColumn("Average quantity per order", format="%d"),
+            },
+            disabled=True
+        )
 
     curs.close()
 

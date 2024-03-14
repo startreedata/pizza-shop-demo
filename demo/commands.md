@@ -1,25 +1,28 @@
-# Demo Script Commands to run
+# Demo Script Commands to Run
 
 This is the demo for the Real-Time Analytics Stack Demo.
 
 ## Existing Architecture
 
+To connect to the MySQL database, run:
+
 ```bash
 docker exec -it mysql mysql -u mysqluser -p
 ```
 
+Execute the following SQL queries to view sample data:
+
 ```sql
-select id, first_name, last_name, email, country 
-FROM pizzashop.users 
-LIMIT 5;
+select id, first_name, last_name, email, country
+FROM pizzashop.users LIMIT 5;
 ```
 
 ```sql
-select id, name, category, price 
-FROM pizzashop.products 
-LIMIT 5;
+select id, name, category, price
+FROM pizzashop.products LIMIT 5;
 ```
 
+Exit the MySQL prompt:
 
 ```sql
 exit
@@ -27,49 +30,62 @@ exit
 
 ## RTA Architecture
 
+Consume messages from the `orders` topic using kcat:
+
 ```bash
 kcat -C -b localhost:29092 -t orders -u | jq '.'
 ```
 
-Open VS Code
+View configuration files using a generic editor or `cat` command:
 
-* Show pinot/config/orders/schema.json
-* Show pinot/config/orders/table.json
+```bash
+cat pinot/config/orders/schema.json
+```
 
-Open Pinot UI
+```bash
+cat pinot/config/orders/table.json
+```
+
+Access the Pinot UI and execute the following SQL query:
 
 ```sql
-select id, price, productsOrdered, status, totalQuantity, ts, userId 
-from orders
-limit 10
+select id, price, productsOrdered, status, totalQuantity, ts, userId
+from orders limit 10
 ```
-Back to the terminal
+
+Return to the terminal and consume messages from the `products` topic:
 
 ```bash
 kcat -C -b localhost:29092 -t products -u | jq '.'
 ```
 
-Open VS Code
+View the `TopologyProducer.java` file:
 
-* Show TopologyProducer.java
+```bash
+cat TopologyProducer.java
+```
 
-Back to terminal 
+Back in the terminal, consume a single message from the `enriched-order-items` topic:
 
 ```bash
 kcat -C -b localhost:29092 -t enriched-order-items -c1 | jq '.'
 ```
 
-Open VS Code
+View the configuration files for enriched order items:
 
-* Show pinot/config/order_items_enriched/schema.json
-* Show pinot/config/order_items_enriched/table.json
+```bash
+cat pinot/config/order_items_enriched/schema.json
+```
 
-Back to Pinot UI
+```bash
+cat pinot/config/order_items_enriched/table.json
+```
+
+Switch to the Pinot UI and execute the following SQL queries:
 
 ```sql
-select * 
-from order_items_enriched
-LIMIT 10;
+select *
+from order_items_enriched LIMIT 10;
 ```
 
 ```sql
@@ -80,13 +96,13 @@ group by category
 order by count(*) DESC
 ```
 
-Open Streamlit
+Open the Streamlit dashboard at [http://localhost:8502](http://localhost:8502):
 
-http://localhost:8502
+- Change the amount of data being shown.
+- Change the refresh rate.
 
-* Change the amount of data being shown
-* Change the refresh rate
+Finally, review the Streamlit app code:
 
-Open VS Code
-
-* Show app_enriched.py
+```bash
+cat app_enriched.py
+```

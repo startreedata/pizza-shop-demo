@@ -1,0 +1,168 @@
+version: "3"
+services:
+  
+  mysql:
+    image: mysql/mysql-server:8.0.27
+    hostname: mysql
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=debezium
+      - MYSQL_USER=mysqluser
+      - MYSQL_PASSWORD=mysqlpw
+    volumes:
+      - ./mysql/mysql.cnf:/etc/mysql/conf.d
+      - ./mysql/mysql_bootstrap.sql:/docker-entrypoint-initdb.d/mysql_bootstrap.sql
+      - ./mysql/data:/var/lib/mysql-files/data
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.3
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck: { test: echo srvr | nc localhost 2181 }
+  kafka:
+    image: confluentinc/cp-kafka:7.5.3
+    hostname: kafka
+    container_name: kafka
+    depends_on:
+      [ zookeeper ]
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+    healthcheck: { test: nc -z localhost 9092, interval: 1s }
+
+  console:
+    hostname: console
+    container_name: console
+    image: docker.redpanda.com/redpandadata/console:latest
+    restart: on-failure
+    entrypoint: /bin/sh
+    command: -c "echo \"$$CONSOLE_CONFIG_FILE\" > /tmp/config.yml; /app/console"
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        server:
+          listenPort: 9080
+        kafka:
+          brokers: ["kafka:9092"]
+          schemaRegistry:
+            enabled: false
+            urls: ["http://schema-registry:8081"]
+        connect:
+          enabled: false
+    ports:
+      - "9080:9080"
+    depends_on:
+      - kafka
+
+  enrichment:
+    build: enrichment-bytewax
+    restart: unless-stopped
+    image: enrichment-bytewax
+    container_name: enrichment-bytewax
+    environment:
+      - BOOTSTRAP_SERVERS=kafka:9092
+      - ORDERS_TOPIC=orders
+      - PRODUCTS_TOPIC=products
+      - ENRICHED_ORDERS_TOPIC=enriched-order-items
+    depends_on:
+      - kafka
+  
+  #  enrichment:
+  #    build: enrichment-kafka-streams
+  #    restart: unless-stopped
+  #    container_name: enrichment-kafka-streams
+  #    environment:
+  #      - QUARKUS_KAFKA_STREAMS_BOOTSTRAP_SERVERS=kafka:9092
+  #      - ORDERS_TOPIC=orders
+  #      - PRODUCTS_TOPIC=products
+  #      - ENRICHED_ORDERS_TOPIC=enriched-order-items
+  #    depends_on:
+  #      - kafka
+
+  pinot-controller:
+    image: apachepinot/pinot:1.0.0
+    command: "StartController -zkAddress zookeeper:2181"
+    container_name: "pinot-controller"
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    depends_on:
+      - zookeeper
+    healthcheck: { test: nc -z localhost 9000, interval: 1s }
+  
+  pinot-broker:
+    image: apachepinot/pinot:1.0.0
+    command: "StartBroker -zkAddress zookeeper:2181"
+    restart: unless-stopped
+    container_name: "pinot-broker"
+    ports:
+      - "8099:8099"
+    depends_on:
+      - pinot-controller
+  
+  pinot-server:
+    image: apachepinot/pinot:1.0.0
+    container_name: "pinot-server"
+    command: "StartServer -zkAddress zookeeper:2181"
+    restart: unless-stopped
+    depends_on:
+      - pinot-broker
+  
+  pinot-add-table:
+    image: apachepinot/pinot:1.0.0
+    container_name: "pinot-add-table"
+    volumes:
+      - ./pinot/config:/config
+      - ./scripts/:/scripts
+    command: "/scripts/add_tables.sh"
+    restart: on-failure
+    entrypoint: "bash -c"
+    environment:
+      - "JAVA_OPTS=-Dpinot.admin.system.exit=true"
+    depends_on:
+      - pinot-controller
+  
+  dashboard-enriched:
+    build: streamlit
+    restart: unless-stopped
+    container_name: dashboard-enriched
+    ports:
+      - "8502:8501"
+    depends_on:
+      - pinot-controller
+    volumes:
+      - ./streamlit/app_enriched.py:/workdir/app.py
+    environment:
+      - PINOT_SERVER
+      - PINOT_PORT
+  
+  orders-service:
+    build: orders-service
+    restart: unless-stopped
+    container_name: orders-service
+    depends_on:
+      - mysql
+      - kafka
+    environment:
+      - MYSQL_SERVER=mysql
+      - KAFKA_BROKER_HOSTNAME=kafka
+      - KAFKA_BROKER_PORT=9092

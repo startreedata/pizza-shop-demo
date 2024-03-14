@@ -1,0 +1,5 @@
+confluent-kafka
+bytewax==0.18.2
+requests
+fastavro
+orjson

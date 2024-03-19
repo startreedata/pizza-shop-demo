@@ -9,6 +9,8 @@ WORKDIR /bytewax
 
 COPY requirements.txt requirements.txt
 COPY dataflow.py dataflow.py
+RUN mkdir data
+COPY data/products.jsonl data/products.jsonl
 
 RUN pip install --upgrade pip
 RUN python3 --version && pip install -r requirements.txt

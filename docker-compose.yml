@@ -1,4 +1,4 @@
-version: "3"
+version: "3.8"
 services:
   
   mysql:
@@ -15,8 +15,9 @@ services:
       - ./mysql/mysql.cnf:/etc/mysql/conf.d
       - ./mysql/mysql_bootstrap.sql:/docker-entrypoint-initdb.d/mysql_bootstrap.sql
       - ./mysql/data:/var/lib/mysql-files/data
+  
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.3
+    image: confluentinc/cp-zookeeper:7.6.0
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -25,8 +26,9 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     healthcheck: { test: echo srvr | nc localhost 2181 }
+    
   kafka:
-    image: confluentinc/cp-kafka:7.5.3
+    image: confluentinc/cp-kafka:7.6.0
     hostname: kafka
     container_name: kafka
     depends_on:
@@ -72,34 +74,34 @@ services:
       - "9080:9080"
     depends_on:
       - kafka
-
-  enrichment:
-    build: enrichment-bytewax
-    restart: unless-stopped
-    image: enrichment-bytewax
-    container_name: enrichment-bytewax
-    environment:
-      - BOOTSTRAP_SERVERS=kafka:9092
-      - ORDERS_TOPIC=orders
-      - PRODUCTS_TOPIC=products
-      - ENRICHED_ORDERS_TOPIC=enriched-order-items
-    depends_on:
-      - kafka
   
   #  enrichment:
-  #    build: enrichment-kafka-streams
+  #    build: enrichment-bytewax
   #    restart: unless-stopped
-  #    container_name: enrichment-kafka-streams
+  #    image: enrichment-bytewax
+  #    container_name: enrichment-bytewax
   #    environment:
-  #      - QUARKUS_KAFKA_STREAMS_BOOTSTRAP_SERVERS=kafka:9092
+  #      - BOOTSTRAP_SERVERS=kafka:9092
   #      - ORDERS_TOPIC=orders
   #      - PRODUCTS_TOPIC=products
   #      - ENRICHED_ORDERS_TOPIC=enriched-order-items
   #    depends_on:
   #      - kafka
+  
+  enrichment:
+    build: enrichment-kafka-streams
+    restart: unless-stopped
+    container_name: enrichment-kafka-streams
+    environment:
+      - QUARKUS_KAFKA_STREAMS_BOOTSTRAP_SERVERS=kafka:9092
+      - ORDERS_TOPIC=orders
+      - PRODUCTS_TOPIC=products
+      - ENRICHED_ORDERS_TOPIC=enriched-order-items
+    depends_on:
+      - kafka
 
   pinot-controller:
-    image: apachepinot/pinot:1.0.0
+    image: apachepinot/pinot:1.1.0
     command: "StartController -zkAddress zookeeper:2181"
     container_name: "pinot-controller"
     restart: unless-stopped
@@ -107,39 +109,40 @@ services:
       - "9000:9000"
     depends_on:
       - zookeeper
-    healthcheck: { test: nc -z localhost 9000, interval: 1s }
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:9000/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - ./pinot/config:/config
   
   pinot-broker:
-    image: apachepinot/pinot:1.0.0
+    image: apachepinot/pinot:1.1.0
     command: "StartBroker -zkAddress zookeeper:2181"
     restart: unless-stopped
     container_name: "pinot-broker"
     ports:
       - "8099:8099"
     depends_on:
-      - pinot-controller
+      pinot-controller:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8099/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
   
   pinot-server:
-    image: apachepinot/pinot:1.0.0
+    image: apachepinot/pinot:1.1.0
     container_name: "pinot-server"
     command: "StartServer -zkAddress zookeeper:2181"
     restart: unless-stopped
     depends_on:
-      - pinot-broker
-  
-  pinot-add-table:
-    image: apachepinot/pinot:1.0.0
-    container_name: "pinot-add-table"
-    volumes:
-      - ./pinot/config:/config
-      - ./scripts/:/scripts
-    command: "/scripts/add_tables.sh"
-    restart: on-failure
-    entrypoint: "bash -c"
-    environment:
-      - "JAVA_OPTS=-Dpinot.admin.system.exit=true"
-    depends_on:
-      - pinot-controller
+      pinot-broker:
+        condition: service_healthy
   
   dashboard-enriched:
     build: streamlit
@@ -148,7 +151,8 @@ services:
     ports:
       - "8502:8501"
     depends_on:
-      - pinot-controller
+      pinot-controller:
+        condition: service_healthy
     volumes:
       - ./streamlit/app_enriched.py:/workdir/app.py
     environment:

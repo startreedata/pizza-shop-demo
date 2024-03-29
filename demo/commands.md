@@ -39,11 +39,11 @@ kcat -C -b localhost:29092 -t orders -u | jq '.'
 View configuration files using a generic editor or `cat` command:
 
 ```bash
-cat pinot/config/orders/schema.json
+cat ../pinot/config/orders/schema.json | jq
 ```
 
 ```bash
-cat pinot/config/orders/table.json
+cat ../pinot/config/orders/table.json | jq
 ```
 
 Access the Pinot UI and execute the following SQL query:
@@ -74,11 +74,11 @@ kcat -C -b localhost:29092 -t enriched-order-items -c1 | jq '.'
 View the configuration files for enriched order items:
 
 ```bash
-cat pinot/config/order_items_enriched/schema.json
+cat ../pinot/config/order_items_enriched/schema.json | jq
 ```
 
 ```bash
-cat pinot/config/order_items_enriched/table.json
+cat ../pinot/config/order_items_enriched/table.json | jq
 ```
 
 Switch to the Pinot UI and execute the following SQL queries:

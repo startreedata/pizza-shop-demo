@@ -12,11 +12,7 @@ The Pizza Shop Demo shows how to build a real-time dashboard for the operators o
 Spin everything up on your machine:
 
 ```
-docker-compose \
-  -f docker-compose-base.yml \
-  -f docker-compose-pinot.yml \
-  -f docker-compose-dashboard-enriched-quarkus.yml \
-  up
+docker-compose up
 ```
 
 You can navigate to those Docker files to show how we're running each of the components.
@@ -98,7 +94,7 @@ SELECT "product.name" AS product,
         distinctcount(orderId) AS orders,
         sum("orderItem.quantity") AS quantity
 FROM order_items_enriched
-where ts > ago(%(timeAgo)s)
+where ts > ago('PT2M')
 group by product, image
 LIMIT 5
 ```

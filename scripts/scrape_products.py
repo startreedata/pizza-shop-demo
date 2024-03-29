@@ -1,8 +1,8 @@
-from calendar import c
-from bs4 import BeautifulSoup
+import csv
 import glob
 import json
-import csv
+
+from bs4 import BeautifulSoup
 
 with open("mysql/data/products.csv", "w") as products_file:
     writer = csv.writer(products_file, delimiter=",")
@@ -21,14 +21,14 @@ with open("mysql/data/products.csv", "w") as products_file:
                 name = soup.select("h1 span")[0].text
 
                 description_element = soup.select("section#main-section-mobile div.p-text-description.lead p")
-                description = description_element[0].text if len(description_element) > 0  else ""
-                
+                description = description_element[0].text if len(description_element) > 0 else ""
+
                 category = [item.text for item in soup.select("ul.breadcrumb li a span")][-2]
                 image = soup.select("div.col-md-6 img.element-left-40")[0]["src"]
                 crusts = [item.text.strip() for item in soup.select("ul.ul-list.features-list.element-top-1 li")]
 
                 crust_sizes_element = soup.select("div.col-md-12.col-xs-12 p.sub-description.lead")
-                crust_sizes = [item.strip() for item in crust_sizes_element[0].text.strip().split("|")] if len(crust_sizes_element) > 0  else ["regular", "medium", "large"]
+                crust_sizes = [item.strip() for item in crust_sizes_element[0].text.strip().split("|")] if len(crust_sizes_element) > 0 else ["regular", "medium", "large"]
 
                 prices_table = [[col.text.strip() for col in item.select("th")] for item in soup.select("section#main-section table tr")]
                 prices = {item[0]: item[1] for item in prices_table}
@@ -47,11 +47,11 @@ with open("mysql/data/products.csv", "w") as products_file:
                 }
 
                 if category != "beverages":
-                    item = {**item, 
-                        "crusts": crusts,
-                        "crustSizes": crust_sizes,
-                        "prices": prices
-                    }
+                    item = {**item,
+                            "crusts": crusts,
+                            "crustSizes": crust_sizes,
+                            "prices": prices
+                            }
 
                 writer.writerow([item["name"], item["description"], float(item["price"]), item["category"], item["image"]])
 
